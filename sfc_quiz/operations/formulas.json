@@ -1,0 +1,17 @@
+[
+    {
+        "name": "VLOOKUP",
+        "description": "Searches for a value in the first column of a range and returns a value in the same row from a specified column.",
+        "formula": "dataframe[dataframe[lookup_column] == lookup_value][result_column]"
+    },
+    {
+        "name": "SUM",
+        "description": "Calculates the sum of a series of numbers and/or cells.",
+        "formula": "dataframe[column_name].sum()"
+    },
+    {
+        "name": "AVERAGE",
+        "description": "Calculates the average of a series of numbers and/or cells.",
+        "formula": "dataframe[column_name].mean()"
+    }
+]

@@ -1,0 +1,30 @@
+{"formulas": [
+    {
+      "name": "VLOOKUP",
+      "description": "The VLOOKUP function searches for a value in the leftmost column of a table, and returns a value in the same row from another column in the table.",
+      "formula": "=VLOOKUP({lookup_value}, {table_array}, {col_index_num}, {range_lookup})",
+      "inputs": [
+        {"name": "lookup_value", "description": "Enter the value to look up"},
+        {"name": "table_array", "description": "Select the table/range to look up in"},
+        {"name": "col_index_num", "description": "Select the column to return the value from"},
+        {"name": "range_lookup", "description": "TRUE for approximate match, FALSE for exact match"}
+      ]
+    },
+    {
+      "name": "SUM",
+      "description": "The SUM function adds values.",
+      "formula": "=SUM({numbers})",
+      "inputs": [
+        {"name": "numbers", "description": "Enter the numbers to sum, separated by commas"}
+      ]
+    },
+    {
+      "name": "CONCATENATE",
+      "description": "The CONCATENATE function joins several text strings into one text string.",
+      "formula": "=CONCATENATE({texts})",
+      "inputs": [
+        {"name": "texts", "description": "Enter the text strings to join, separated by commas"}
+      ]
+    }
+  ]
+}

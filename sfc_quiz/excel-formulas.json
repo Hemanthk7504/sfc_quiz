@@ -1,0 +1,99 @@
+{
+  "formulas": [
+    {
+      "name": "VLOOKUP",
+      "description": "The VLOOKUP function searches for a value in the leftmost column of a table, and returns a value in the same row from another column in the table.",
+      "formula": "=VLOOKUP({lookup_value}, {table_array}, {col_index_num}, {range_lookup})",
+      "inputs": {
+        "lookup_value": "Enter the value to look up",
+        "table_array": "Select the table/range to look up in",
+        "col_index_num": "Select the column to return the value from"
+      }
+    },
+    {
+      "name": "SUM",
+      "description": "The SUM function adds all the values in a range of cells.",
+      "formula": "=SUM({range})",
+      "inputs": {
+        "range": "Select the range of cells to sum"
+      }
+    },
+    {
+      "name": "AVERAGE",
+      "description": "The AVERAGE function calculates the arithmetic mean (average) of a range of cells.",
+      "formula": "=AVERAGE({range})",
+      "inputs": {
+        "range": "Select the range of cells to calculate the average for"
+      }
+    },
+    {
+      "name": "STDEV.P",
+      "description": "The STDEV.P function calculates the standard deviation of a population based on the entire population.",
+      "formula": "=STDEV.P({range})",
+      "inputs": {
+        "range": "Select the range of cells to calculate the standard deviation for"
+      }
+    },
+    {
+      "name": "STDEV.S",
+      "description": "The STDEV.S function calculates the standard deviation of a sample based on a sample population.",
+      "formula": "=STDEV.S({range})",
+      "inputs": {
+        "range": "Select the range of cells to calculate the standard deviation for"
+      }
+    },
+    {
+      "name": "VAR.P",
+      "description": "The VAR.P function calculates the variance of a population based on the entire population.",
+      "formula": "=VAR.P({range})",
+      "inputs": {
+        "range": "Select the range of cells to calculate the variance for"
+      }
+    },
+    {
+      "name": "VAR.S",
+      "description": "The VAR.S function calculates the variance of a sample based on a sample population.",
+      "formula": "=VAR.S({range})",
+      "inputs": {
+        "range": "Select the range of cells to calculate the variance for"
+      }
+    },
+    {
+      "name": "MODE.SNGL",
+      "description": "The MODE.SNGL function returns the most frequently occurring value in a range of cells.",
+      "formula": "=MODE.SNGL({range})",
+      "inputs": {
+        "range": "Select the range of cells to calculate the mode for"
+      }
+    },
+    {
+      "name": "IF",
+      "description": "The IF function checks whether a condition is met and returns one value if it is true, and another value if it is false.",
+      "formula": "=IF({condition}, {value_if_true}, {value_if_false})",
+      "inputs": {
+        "condition": "Enter the condition to evaluate",
+        "value_if_true": "Enter the value to return if the condition is true",
+        "value_if_false": "Enter the value to return if the condition is false"
+      }
+    },
+    {
+      "name": "COUNTIF",
+      "description": "The COUNTIF function counts the number of cells in a range that meet a specified criteria.",
+      "formula": "=COUNTIF({range}, {criteria})",
+      "inputs": {
+        "range": "Select the range of cells to count",
+        "criteria": "Enter the criteria to count for"
+      }
+    },
+    {
+      "name": "SUMIF",
+      "description": "The SUMIF function sums the values in a range of cells that meet a specified criteria.",
+      "formula": "=SUMIF({range}, {criteria}, {sum_range})",
+      "inputs": {
+        "range": "Select the range of cells to evaluate the criteria against",
+        "criteria": "Enter the criteria to sum for",
+        "sum_range": "Select the range of cells to sum (or leave blank to sum the same range as the criteria range)"
+      }
+    }
+  ]
+}
