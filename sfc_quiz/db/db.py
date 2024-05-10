@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine
-from .models import SQLModel
 from sqlmodel import Session
-
+from .models import SQLModel
 
 def create_tables(database_url: str):
     try:
@@ -9,15 +8,7 @@ def create_tables(database_url: str):
     except Exception as e:
         print(f"Error creating tables: {e}")
 
-
-password = "Hemanth888"
-username = "postgres"
-database = "quiz_stats"
-port = 5432
-host = "localhost"
-
-database_url = f"postgresql://{username}:{password}@{host}:{port}/{database}"
+database_url = "sqlite:///quiz_stats.db"
 engine = create_engine(database_url)
 create_tables(database_url)
-
 session = Session(engine)

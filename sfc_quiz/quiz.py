@@ -1,6 +1,8 @@
 import re
 
 from PIL import Image
+
+from main import formula_inputs
 from ocr.tesseract_ocr import ocr_image
 import streamlit as st
 from db.db_operations import update_question_with_table, process_question_insertion, match_question, update_question, \
@@ -8,12 +10,11 @@ from db.db_operations import update_question_with_table, process_question_insert
 import json
 import pandas as pd
 import ast
-from db.db import session
+from db.db import session, create_tables
 from db.models import *
-from operations.test import formula_interface
-from utility.test import apply_excel_formula
-from utility.utils import extract_numbers_with_variable_names, convert_to_dataframe, sanitize_formula, \
-    apply_solution, handle_table_input
+# from operations.test import formula_interface
+# from utility.test import apply_excel_formula
+from utility.utils import extract_numbers_with_variable_names, apply_solution, handle_table_input
 from sqlalchemy import select
 
 module_selection = st.sidebar.radio("Choose a module", ("Master Question", "Solutions"), key="choose_module")
@@ -154,7 +155,7 @@ def master_question_module():
             df_json = df.to_json()
             update_question_with_table(session, st.session_state['last_question_id'], df_json)
             st.success("Table data linked to the question successfully.")
-            formula_interface(st.session_state['df'])
+            formula_inputs()
             if st.session_state.get('selected_formula'):
                 selected_formula = st.session_state.get('selected_formula')
                 if selected_formula:
@@ -272,6 +273,12 @@ def solutions_module():
 
 
 if module_selection == "Master Question":
+    create_tables(database_url="sqlite:///quiz_stats.db")
     master_question_module()
+
+
 elif module_selection == "Solutions":
+    create_tables(database_url="sqlite:///quiz_stats.db")
     solutions_module()
+
+
