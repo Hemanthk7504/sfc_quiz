@@ -1,11 +1,36 @@
+import io
+import uuid
+import xlwings as xw
+import pandas as pd
 import streamlit as st
+from openpyxl.reader.excel import load_workbook
+from openpyxl.styles import PatternFill, Font
+from openpyxl.utils import get_column_letter
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.workbook import Workbook
 
 from sfc_quiz.utility.utils import handle_table_input
+
+
+def excel_to_dataframe_reference(cell_ref):
+    col_str, row_str = '', ''
+    for char in cell_ref:
+        if char.isalpha():
+            col_str += char
+        else:
+            row_str += char
+    col_num = 0
+    for char in col_str:
+        col_num = col_num * 26 + (ord(char) - ord('A') + 1)
+    row_num = int(row_str) - 1
+    return row_num, col_num - 1
+
+st.title("SFC Quiz Tesing App")
 
 handle_table_input()
 
 
-def run_excel_formula_app(df):
+def run_excel_formula_app(df, session_key):
     st.title("Excel Formula Generator")
 
     if 'selected_formula' not in st.session_state:
@@ -15,7 +40,8 @@ def run_excel_formula_app(df):
         st.session_state['formula_type'] = None
 
     formula_type = st.selectbox("Select a formula type:",
-                                ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVG","INDEX-MATCH"])
+                                ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVG",
+                                 "INDEX-MATCH"], key=f"formula_type_{session_key}")
     column = None
     lookup_value = None
     lookup_column = None
@@ -29,7 +55,7 @@ def run_excel_formula_app(df):
     Array = None
     result_column = None
     row = None
-
+    sum_column = None
     if formula_type == "SUM" or formula_type == "AVG":
         column = st.selectbox("Select the column for the operation:", df.columns)
     elif formula_type == "SUMIF":
@@ -124,7 +150,7 @@ def run_excel_formula_app(df):
                 formula = f"=INDEX({start_col}2:{end_col}{len(df) + 1}, {row_num}, {col_num})"
             else:
                 st.warning("Selected column is not present in the DataFrame.")
-        elif formula_type =="INDEX-MATCH":
+        elif formula_type == "INDEX-MATCH":
 
             if lookup_value and lookup_column and result_column:
                 lookup_col_letter = chr(ord('A') + df.columns.get_loc(lookup_column))
@@ -142,7 +168,37 @@ def run_excel_formula_app(df):
         st.text("Generated Excel Formula:")
         st.code(st.session_state['selected_formula'])
 
+        if st.button("Apply Formula"):
+            formula = st.session_state['selected_formula']
+            try:
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False)
+                    workbook = writer.book
+                    sheet = workbook.active
+                    max_col = df.shape[1]  # Number of columns in the DataFrame
+                    formula_col = get_column_letter(max_col + 3)  # 2 columns space + 1 for the next available column
+                    formula_cell = f"{formula_col}1"
+                    sheet[formula_cell] = formula
+                    sheet[formula_cell].font = Font(bold=True)
+                    sheet[formula_cell].fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+
+                output.seek(0)
+                wb = load_workbook(output)
+                ws = wb.active
+                result = ws[formula_cell].value
+                st.success(f"The formula has been applied at cell {formula_cell}")
+                st.download_button(
+                    label="Download Excel file",
+                    data=output,
+                    file_name="modified_data.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+            except Exception as e:
+                st.error(f"Error applying the formula: {str(e)}")
+
 
 if st.session_state['df'] is not None:
     df = st.session_state['df']
-    run_excel_formula_app(df)
+    run_excel_formula_app(df, session_key=str(uuid.uuid4()))
