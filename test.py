@@ -1,76 +1,148 @@
-import re
-
-import pandas as pd
-import openpyxl
 import streamlit as st
-from io import BytesIO
 
 from sfc_quiz.utility.utils import handle_table_input
 
-# Sample DataFrame for demonstration
 handle_table_input()
-df = st.session_state['df']
 
 
-def excel_to_dataframe_reference(cell):
-    match = re.match(r"([A-Z]+)([0-9]+)", cell)
-    if match:
-        col, row = match.groups()
-        row = int(row) - 1  # Convert to zero-based index
-        col = ord(col) - 65  # Convert 'A' to 0, 'B' to 1, etc.
-        return row, col
-    else:
-        raise ValueError(f"Invalid cell reference '{cell}'. Cell reference must contain a column and a row number.")
+def run_excel_formula_app(df):
+    st.title("Excel Formula Generator")
+
+    if 'selected_formula' not in st.session_state:
+        st.session_state['selected_formula'] = None
+
+    if 'formula_type' not in st.session_state:
+        st.session_state['formula_type'] = None
+
+    formula_type = st.selectbox("Select a formula type:",
+                                ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVG","INDEX-MATCH"])
+    column = None
+    lookup_value = None
+    lookup_column = None
+    range_columns = None
+    col_index_num = None
+    range_lookup = None
+    condition = None
+    condition_column = None
+    condition_value = None
+    condition_operator = None
+    Array = None
+    result_column = None
+    row = None
+
+    if formula_type == "SUM" or formula_type == "AVG":
+        column = st.selectbox("Select the column for the operation:", df.columns)
+    elif formula_type == "SUMIF":
+        range_columns = st.multiselect("Select the range of columns for SUMIF:", df.columns,
+                                       default=df.columns.tolist())
+        sum_column = st.selectbox("Select the column to sum:", df.columns)
+        condition_column = st.selectbox("Select the column for the condition:", df.columns)
+        condition = st.text_input("Enter the condition for SUMIF (e.g., '>4000'):")
+    elif formula_type == "FILTER":
+        range_columns = st.multiselect("Select the column to filter:", df.columns, default=df.columns.tolist())
+        condition_column = st.selectbox("Select the column for the condition:", df.columns)
+        condition_value = st.text_input("Enter the condition value (e.g., '20'):")
+        condition_operator = st.selectbox("Choose the operator:", [">", "<", "=", ">=", "<="])
+    elif formula_type == "HLOOKUP":
+        lookup_value = st.text_input("Enter the lookup value for HLOOKUP:")
+        range_columns = st.multiselect("Select the range of rows to search within:", df.columns,
+                                       default=df.columns.tolist())
+        col_index_num = st.number_input("Enter the row index for the result (starting from 1):", min_value=1,
+                                        max_value=len(df.columns), value=1)
+        range_lookup = st.radio("Choose the type of match for HLOOKUP:", ['True', 'False'], index=1)
+
+    elif formula_type == "VLOOKUP":
+        lookup_column = st.selectbox("Select the lookup column:", df.columns)
+        lookup_value = st.text_input("Enter the lookup value:")
+        range_columns = st.multiselect("Select the range of columns to search within:", df.columns,
+                                       default=df.columns.tolist())
+        col_index_num = st.number_input("Enter the column index for the result (starting from 1):", min_value=1,
+                                        max_value=len(df.columns), value=1)
+        range_lookup = st.radio("Choose the type of match:", ['True', 'False'], index=1)
+    elif formula_type == "MATCH":
+        column = st.selectbox("Select the column for MATCH:", df.columns)
+        lookup_value = st.text_input("Enter lookup value for MATCH:")
+    elif formula_type == "INDEX":
+        Array = st.multiselect("Select the Array:", df.columns, default=df.columns.tolist())
+        column = st.selectbox("Select the column for INDEX:", Array)
+        row = st.number_input("Enter the index position (row number):", min_value=1, max_value=len(df), value=1)
+    elif formula_type == "INDEX-MATCH":
+        lookup_value = st.text_input("Enter the lookup value:")
+        lookup_column = st.selectbox("Select the lookup column:", df.columns)
+        result_column = st.selectbox("Select the result column:", df.columns)
+        Array = st.multiselect("Select the Array:", df.columns, default=df.columns.tolist())
+    if st.button(f"Generate {formula_type} Formula"):
+        formula = ""
+        if formula_type == "SUM":
+            formula = f"=SUM({chr(ord('A') + df.columns.get_loc(column))}2:{chr(ord('A') + df.columns.get_loc(column))}{len(df) + 1})"
+        elif formula_type == "SUMIF":
+            if condition:
+                start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
+                end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
+                sum_col_letter = chr(ord('A') + df.columns.get_loc(sum_column))
+                condition_col_letter = chr(ord('A') + df.columns.get_loc(condition_column))
+                formula = f'=SUMIF({condition_col_letter}2:{condition_col_letter}{len(df) + 1}, "{condition}", {sum_col_letter}2:{sum_col_letter}{len(df) + 1})'
+            else:
+                st.warning("Please enter a condition for SUMIF.")
+        elif formula_type == "VLOOKUP":
+            row_index = df[df[lookup_column].astype(str) == lookup_value].index[0] + 2
+            lookup_value_cell = f'{chr(ord("A") + df.columns.get_loc(lookup_column))}{row_index}'
+            start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
+            end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
+            table_range = f"{start_col}2:{end_col}{len(df) + 1}"
+            formula = f"=VLOOKUP({lookup_value_cell}, {table_range}, {col_index_num}, {range_lookup})"
+        elif formula_type == "MATCH":
+            row_index = df[df[column].astype(str) == lookup_value].index[0] + 2
+            lookup_value = f'{chr(ord("A") + df.columns.get_loc(column))}{row_index}'
+            formula = f"=MATCH({lookup_value}, {chr(ord('A') + df.columns.get_loc(column))}2:{chr(ord('A') + df.columns.get_loc(column))}{len(df) + 1}, 0)"
+        elif formula_type == "FILTER":
+            condition_match = df[df[condition_column].astype(str) == condition_value]
+            if not condition_match.empty:
+                row_index = condition_match.index[0] + 2
+                start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
+                end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
+                condition_col_letter = chr(ord('A') + df.columns.get_loc(condition_column))
+                table_range = f"{start_col}2:{end_col}{len(df) + 1}"
+                condition_value = f'{chr(ord("A") + df.columns.get_loc(condition_column))}{row_index}'
+                condition_str = f"{condition_col_letter}2:{condition_col_letter}{len(df) + 1} {condition_operator} {condition_value}"
+                formula = f"=FILTER({table_range}, {condition_str})"
+            else:
+                st.warning("No rows match the specified condition.")
+
+            st.session_state['selected_formula'] = formula
+        elif formula_type == "HLOOKUP":
+            start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
+            end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
+            range_lookup_val = "TRUE" if range_lookup == "True" else "FALSE"
+            formula = f"=HLOOKUP({lookup_value}, {start_col}1:{end_col}{len(df) + 1}, {col_index_num}, {range_lookup_val})"
+        elif formula_type == "INDEX":
+            if column in df.columns:
+                row_num = int(row)
+                start_col = chr(ord('A') + df.columns.get_loc(Array[0]))
+                end_col = chr(ord('A') + df.columns.get_loc(Array[-1]))
+                col_num = df.columns.get_loc(column) + 1
+                formula = f"=INDEX({start_col}2:{end_col}{len(df) + 1}, {row_num}, {col_num})"
+            else:
+                st.warning("Selected column is not present in the DataFrame.")
+        elif formula_type =="INDEX-MATCH":
+
+            if lookup_value and lookup_column and result_column:
+                lookup_col_letter = chr(ord('A') + df.columns.get_loc(lookup_column))
+                result_col_letter = chr(ord('A') + df.columns.get_loc(result_column))
+                formula = f'=INDEX({lookup_col_letter}2:{result_col_letter}{len(df) + 1}, MATCH({lookup_value}, {lookup_col_letter}2:{lookup_col_letter}{len(df) + 1}, 0))'
+            else:
+                st.warning("Please provide the lookup value, lookup column, and result column.")
+        elif formula_type == "AVG":
+            formula = f"=AVERAGE({chr(ord('A') + df.columns.get_loc(column))}2:{chr(ord('A') + df.columns.get_loc(column))}{len(df) + 1})"
+
+        st.session_state['selected_formula'] = formula
+        st.session_state['formula_type'] = formula_type
+
+    if st.session_state['selected_formula']:
+        st.text("Generated Excel Formula:")
+        st.code(st.session_state['selected_formula'])
 
 
-# Choose the formula to apply
-formula_choice = st.selectbox("Select a formula", ["SUM", "VLOOKUP", "CONCATENATE"])
-
-# Handling SUM formula input
-if formula_choice == "SUM":
-    st.write("The SUM function adds the values in a range of cells.")
-
-    # Convert DataFrame columns to a list and specify default columns
-    columns_list = df.columns.tolist()
-    default_columns = columns_list[:2]  # Default to first two columns
-
-    # Let the user select multiple columns to sum, ensuring default values are properly set
-    selected_columns = st.multiselect("Select columns to sum:", options=columns_list, default=default_columns)
-
-    if selected_columns:
-
-        cell_ranges = [f"{chr(65 + df.columns.get_loc(col))}2:{chr(65 + df.columns.get_loc(col))}{len(df) + 1}"
-                       for col in selected_columns]
-        combined_range = ','.join(cell_ranges)  # Combine all selected column ranges
-
-        # Where to apply the formula
-        target_cell = st.text_input("Enter the cell to apply formula (e.g., 'D1')")
-        apply_button = st.button("Apply Formula")
-
-        if apply_button and target_cell:
-            # Apply formula in Excel
-            output = BytesIO()
-            st.write(output.read())
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False)
-                workbook = writer.book
-                sheet = workbook.active
-                formula = f"=SUM({combined_range})"
-                sheet[target_cell] = formula
-                writer.save()
-            output.seek(0)
-            df_with_formula = pd.read_excel(output)
-
-            target_row, target_col = excel_to_dataframe_reference(target_cell)
-
-            formula_output = df_with_formula.iat[target_row, target_col]
-
-            st.success(f"Formula `{formula}` applied at cell {target_cell}. Output: {formula_output}")
-
-            st.write(f"Formula =SUM({combined_range}) applied at cell {target_cell}. Output: {formula_output}")
-            st.download_button(
-                "Download Excel file with formulas",
-                output,
-                "dynamic_formulas_excel.xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+if st.session_state['df'] is not None:
+    df = st.session_state['df']
+    run_excel_formula_app(df)
