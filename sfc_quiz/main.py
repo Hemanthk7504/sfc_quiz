@@ -2,7 +2,6 @@ import re
 import pandas as pd
 import streamlit as st
 from io import BytesIO
-
 from utility.utils import convert_to_dataframe
 
 
@@ -209,6 +208,7 @@ def apply_formula(formula_choice, input_values, target_cell, previous_output=Non
 def formula_inputs():
     formula_choice = st.selectbox("Select a formula", ["SUM", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVG"])
     input_values = {}
+    df = st.session_state['df']
     table_array_cols = []
     if formula_choice in ["SUM", "AVG"]:
         range_ = st.text_input("Enter the range (e.g., 'A1:B5'):")
@@ -331,3 +331,5 @@ def formula_inputs():
 
     if st.button("Apply Formula"):
         apply_formula(formula_choice, input_values, target_cell)
+
+formula_inputs()

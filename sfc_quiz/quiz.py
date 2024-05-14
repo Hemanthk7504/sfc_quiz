@@ -12,8 +12,7 @@ import pandas as pd
 import ast
 from db.db import session, create_tables
 from db.models import *
-# from operations.test import formula_interface
-# from utility.test import apply_excel_formula
+from operations.operation import run_excel_formula_app
 from utility.utils import extract_numbers_with_variable_names, apply_solution, handle_table_input
 from sqlalchemy import select
 
@@ -51,16 +50,6 @@ def view_solution(question_id, session):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-
-
-if 'no_solution_steps' not in st.session_state:
-    st.session_state['no_solution_steps'] = 0
-if 'solution_details_saved' not in st.session_state:
-    st.session_state['solution_details_saved'] = False
-if 'last_question_id' not in st.session_state:
-    st.session_state['last_question_id'] = None
-if 'question_init' not in st.session_state:
-    st.session_state['question_init'] = None
 
 
 def edit_question_interface(similar_questions):
@@ -101,6 +90,20 @@ def edit_question_interface(similar_questions):
         # Optionally reset or clear the form here
         st.experimental_rerun()
 
+
+if 'no_solution_steps' not in st.session_state:
+    st.session_state['no_solution_steps'] = 0
+st.session_state['df'] = None
+if 'solution_details_saved' not in st.session_state:
+    st.session_state['solution_details_saved'] = False
+if 'last_question_id' not in st.session_state:
+    st.session_state['last_question_id'] = None
+if 'question_init' not in st.session_state:
+    st.session_state['question_init'] = None
+if 'selected_formula' not in st.session_state:
+    st.session_state['selected_formula'] = None
+if 'formula_type' not in st.session_state:
+    st.session_state['formula_type'] = None
 
 def master_question_module():
     """
@@ -152,10 +155,10 @@ def master_question_module():
         handle_table_input()
         if 'df' in st.session_state and st.session_state['df'] is not None:
             df = st.session_state['df']
+            run_excel_formula_app(df)
             df_json = df.to_json()
             update_question_with_table(session, st.session_state['last_question_id'], df_json)
             st.success("Table data linked to the question successfully.")
-            formula_inputs()
             if st.session_state.get('selected_formula'):
                 selected_formula = st.session_state.get('selected_formula')
                 if selected_formula:
@@ -267,9 +270,6 @@ def solutions_module():
             st.error("No matching question found in the database.")
 
 
-# def main():
-#     if 'df' in st.session_state:
-#         data_operations_module(st.session_state['df'])
 
 
 if module_selection == "Master Question":
@@ -280,5 +280,4 @@ if module_selection == "Master Question":
 elif module_selection == "Solutions":
     create_tables(database_url="sqlite:///quiz_stats.db")
     solutions_module()
-
 
