@@ -201,4 +201,4 @@ def run_excel_formula_app(df, session_key):
 
 if st.session_state['df'] is not None:
     df = st.session_state['df']
-    run_excel_formula_app(df, session_key=str(uuid.uuid4()))
+    run_excel_formula_app(df, session_key="Xqwedfghjkl")
