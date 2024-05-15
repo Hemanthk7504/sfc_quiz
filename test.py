@@ -37,8 +37,8 @@ def run_excel_formula_app(df, session_key):
         st.session_state['formula_type'] = None
 
     formula_type = st.selectbox("Select a formula type:",
-                                ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVG",
-                                 "INDEX-MATCH","IF","PIVOT_TABLE","COMPLEX_IF"], key=f"formula_type_{session_key}")
+                                ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVERAGE",
+                                 "INDEX-MATCH", "IF", "PIVOT_TABLE", "COMPLEX_IF"], key=f"formula_type_{session_key}")
     column = None
     lookup_value = None
     lookup_column = None
@@ -53,8 +53,66 @@ def run_excel_formula_app(df, session_key):
     result_column = None
     row = None
     sum_column = None
-    if formula_type == "SUM" or formula_type == "AVG":
-        column = st.selectbox("Select the column for the operation:", df.columns)
+    range_type = None
+    start_row_num = None
+    end_row_num = None
+    if formula_type == "SUM":
+        range_type = st.radio("Select range type:", ["Row", "Column", "Horizontal"],key=f"sum_range_type_{session_key}")
+        if range_type == "Row":
+            row = st.number_input("Select the row number:", min_value=1, max_value=len(df), value=1)
+            start_col, end_col = st.columns(2)
+            with start_col:
+                start_column = st.selectbox("Select the start column:", df.columns)
+            with end_col:
+                end_column = st.selectbox("Select the end column:", df.columns)
+            formula = f"=SUM({chr(ord('A') + df.columns.get_loc(start_column))}{row}:{chr(ord('A') + df.columns.get_loc(end_column))}{row})"
+        elif range_type == "Column":
+            column = st.selectbox("Select the column:", df.columns)
+            start_row, end_row = st.columns(2)
+            with start_row:
+                start_row_num = st.number_input("Select the start row number:", min_value=1, max_value=len(df), value=1)
+            with end_row:
+                end_row_num = st.number_input("Select the end row number:", min_value=1, max_value=len(df),
+                                              value=len(df))
+            formula = f"=SUM({chr(ord('A') + df.columns.get_loc(column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(column))}{end_row_num})"
+        else:  # Horizontal
+            start_cell, end_cell = st.columns(2)
+            with start_cell:
+                start_column = st.selectbox("Select the start column:", df.columns)
+                start_row_num = st.number_input("Select the start row number:", min_value=1, max_value=len(df), value=1)
+            with end_cell:
+                end_column = st.selectbox("Select the end column:", df.columns)
+                end_row_num = st.number_input("Select the end row number:", min_value=1, max_value=len(df), value=1)
+            formula = f"=SUM({chr(ord('A') + df.columns.get_loc(start_column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(end_column))}{end_row_num})"
+    elif formula_type == "AVERAGE":
+        range_type = st.radio("Select range type:", ["Row", "Column", "Horizontal"],
+                              key=f"sum_range_type_{session_key}")
+        if range_type == "Row":
+            row = st.number_input("Select the row number:", min_value=1, max_value=len(df), value=1)
+            start_col, end_col = st.columns(2)
+            with start_col:
+                start_column = st.selectbox("Select the start column:", df.columns)
+            with end_col:
+                end_column = st.selectbox("Select the end column:", df.columns)
+            formula = f"=AVG({chr(ord('A') + df.columns.get_loc(start_column))}{row}:{chr(ord('A') + df.columns.get_loc(end_column))}{row})"
+        elif range_type == "Column":
+            column = st.selectbox("Select the column:", df.columns)
+            start_row, end_row = st.columns(2)
+            with start_row:
+                start_row_num = st.number_input("Select the start row number:", min_value=1, max_value=len(df), value=1)
+            with end_row:
+                end_row_num = st.number_input("Select the end row number:", min_value=1, max_value=len(df),
+                                              value=len(df))
+            formula = f"=AVG({chr(ord('A') + df.columns.get_loc(column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(column))}{end_row_num})"
+        else:  # Horizontal
+            start_cell, end_cell = st.columns(2)
+            with start_cell:
+                start_column = st.selectbox("Select the start column:", df.columns)
+                start_row_num = st.number_input("Select the start row number:", min_value=1, max_value=len(df), value=1)
+            with end_cell:
+                end_column = st.selectbox("Select the end column:", df.columns)
+                end_row_num = st.number_input("Select the end row number:", min_value=1, max_value=len(df), value=1)
+            formula = f"=AVG({chr(ord('A') + df.columns.get_loc(start_column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(end_column))}{end_row_num})"
     elif formula_type == "SUMIF":
         range_columns = st.multiselect("Select the range of columns for SUMIF:", df.columns,
                                        default=df.columns.tolist())
@@ -113,7 +171,12 @@ def run_excel_formula_app(df, session_key):
     if st.button(f"Generate {formula_type} Formula"):
         formula = ""
         if formula_type == "SUM":
-            formula = f"=SUM({chr(ord('A') + df.columns.get_loc(column))}2:{chr(ord('A') + df.columns.get_loc(column))}{len(df) + 1})"
+            if range_type == "Row":
+                formula = f"=SUM({chr(ord('A') + df.columns.get_loc(start_column))}{row}:{chr(ord('A') + df.columns.get_loc(end_column))}{row})"
+            elif range_type == "Column":
+                formula = f"=SUM({chr(ord('A') + df.columns.get_loc(column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(column))}{end_row_num})"
+            else:  # Horizontal
+                formula = f"=SUM({chr(ord('A') + df.columns.get_loc(start_column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(end_column))}{end_row_num})"
         elif formula_type == "SUMIF":
             if condition:
                 start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
@@ -228,9 +291,13 @@ def run_excel_formula_app(df, session_key):
                 formula = f'=INDEX({lookup_col_letter}2:{result_col_letter}{len(df) + 1}, MATCH({lookup_value}, {lookup_col_letter}2:{lookup_col_letter}{len(df) + 1}, 0))'
             else:
                 st.warning("Please provide the lookup value, lookup column, and result column.")
-        elif formula_type == "AVG":
-            formula = f"=AVERAGE({chr(ord('A') + df.columns.get_loc(column))}2:{chr(ord('A') + df.columns.get_loc(column))}{len(df) + 1})"
-
+        elif formula_type == "AVERAGE":
+            if range_type == "Row":
+                formula = f"=AVG({chr(ord('A') + df.columns.get_loc(start_column))}{row}:{chr(ord('A') + df.columns.get_loc(end_column))}{row})"
+            elif range_type == "Column":
+                formula = f"=AVG({chr(ord('A') + df.columns.get_loc(column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(column))}{end_row_num})"
+            else:  # Horizontal
+                formula = f"=AVG({chr(ord('A') + df.columns.get_loc(start_column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(end_column))}{end_row_num})"
         # elif formula_type == "COMPLEX_IF":
         #     st.subheader("Complex IF Function Configuration")
         #
@@ -246,57 +313,56 @@ def run_excel_formula_app(df, session_key):
         #         value_input = st.text_input(f"Enter value {i + 1}:", key=f"value_input_{i}")
         #         value_inputs.append(value_input)
 
-            # if st.button("Generate Complex IF Function"):
-            #     complex_if_function = "=IF("
-            #     for i in range(num_conditions):
-            #         value_cell = xl_rowcol_to_cell(1, df.columns.get_loc(condition_cells[i]) + 1)
-            #         complex_if_function += f"{condition_cells[i]}<=A1,{value_cell}"
-            #         if i < num_conditions - 1:
-            #             complex_if_function += ",("
-            #         else:
-            #             complex_if_function += ")" * (num_conditions - 1)
-            #
-            #     st.subheader("Generated Complex IF Function")
-            #     st.code(complex_if_function)
-            #
-            #     if st.button("Apply Complex IF Function"):
-            #         try:
-            #             output = io.BytesIO()
-            #             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            #                 df.to_excel(writer, index=False)
-            #                 workbook = writer.book
-            #                 sheet = workbook.active
-            #                 max_col = df.shape[1]
-            #                 formula_col = get_column_letter(max_col + 3)
-            #                 formula_cell = f"{formula_col}1"
-            #                 sheet[formula_cell] = complex_if_function
-            #
-            #                 # Write the input values to the corresponding cells
-            #                 for i in range(num_conditions):
-            #                     value_cell = xl_rowcol_to_cell(1, df.columns.get_loc(condition_cells[i]) + 1)
-            #                     sheet[value_cell] = value_inputs[i]
-            #
-            #                 sheet[formula_cell].font = Font(bold=True)
-            #                 sheet[formula_cell].fill = PatternFill(start_color="FFFF00", end_color="FFFF00",
-            #                                                        fill_type="solid")
-            #
-            #             output.seek(0)
-            #             wb = load_workbook(output)
-            #             ws = wb.active
-            #             ws[formula_cell].data_type = 'f'
-            #             wb.calc_mode = 'auto'
-            #             result = ws[formula_cell].calculate()
-            #             st.success(
-            #                 f"The complex IF function has been applied at cell {formula_cell} and the result is {result}")
-            #             st.download_button(
-            #                 label="Download Excel file",
-            #                 data=output,
-            #                 file_name="modified_data.xlsx",
-            #                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            #             )
-            #         except Exception as e:
-            #             st.error(f"Error applying the complex IF function: {str(e)}")
-
+        # if st.button("Generate Complex IF Function"):
+        #     complex_if_function = "=IF("
+        #     for i in range(num_conditions):
+        #         value_cell = xl_rowcol_to_cell(1, df.columns.get_loc(condition_cells[i]) + 1)
+        #         complex_if_function += f"{condition_cells[i]}<=A1,{value_cell}"
+        #         if i < num_conditions - 1:
+        #             complex_if_function += ",("
+        #         else:
+        #             complex_if_function += ")" * (num_conditions - 1)
+        #
+        #     st.subheader("Generated Complex IF Function")
+        #     st.code(complex_if_function)
+        #
+        #     if st.button("Apply Complex IF Function"):
+        #         try:
+        #             output = io.BytesIO()
+        #             with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        #                 df.to_excel(writer, index=False)
+        #                 workbook = writer.book
+        #                 sheet = workbook.active
+        #                 max_col = df.shape[1]
+        #                 formula_col = get_column_letter(max_col + 3)
+        #                 formula_cell = f"{formula_col}1"
+        #                 sheet[formula_cell] = complex_if_function
+        #
+        #                 # Write the input values to the corresponding cells
+        #                 for i in range(num_conditions):
+        #                     value_cell = xl_rowcol_to_cell(1, df.columns.get_loc(condition_cells[i]) + 1)
+        #                     sheet[value_cell] = value_inputs[i]
+        #
+        #                 sheet[formula_cell].font = Font(bold=True)
+        #                 sheet[formula_cell].fill = PatternFill(start_color="FFFF00", end_color="FFFF00",
+        #                                                        fill_type="solid")
+        #
+        #             output.seek(0)
+        #             wb = load_workbook(output)
+        #             ws = wb.active
+        #             ws[formula_cell].data_type = 'f'
+        #             wb.calc_mode = 'auto'
+        #             result = ws[formula_cell].calculate()
+        #             st.success(
+        #                 f"The complex IF function has been applied at cell {formula_cell} and the result is {result}")
+        #             st.download_button(
+        #                 label="Download Excel file",
+        #                 data=output,
+        #                 file_name="modified_data.xlsx",
+        #                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        #             )
+        #         except Exception as e:
+        #             st.error(f"Error applying the complex IF function: {str(e)}")
 
         st.session_state['selected_formula'] = formula
         st.session_state['formula_type'] = formula_type
