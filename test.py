@@ -38,7 +38,8 @@ def run_excel_formula_app(df, session_key):
 
     formula_type = st.selectbox("Select a formula type:",
                                 ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVERAGE",
-                                 "INDEX-MATCH", "IF", "PIVOT_TABLE", "COMPLEX_IF","COUNT-IF"], key=f"formula_type_{session_key}")
+                                 "INDEX-MATCH", "IF", "PIVOT_TABLE", "COMPLEX_IF", "COUNT-IF"],
+                                key=f"formula_type_{session_key}")
     column = None
     lookup_value = None
     lookup_column = None
@@ -117,6 +118,15 @@ def run_excel_formula_app(df, session_key):
     elif formula_type == "COUNT-IF":
         range_column = st.selectbox("Select the column for COUNTIF:", df.columns)
         criteria = st.text_input("Enter the criteria for COUNTIF:")
+        range_type = st.radio("Select range type:", ["Full Column", "Row Range"],
+                              key=f"countif_range_type_{session_key}")
+
+        if range_type == "Full Column":
+            start_row_num = 2
+            end_row_num = len(df) + 1
+        else:
+            start_row_num = st.number_input("Select the start row number:", min_value=1, max_value=len(df), value=1)
+            end_row_num = st.number_input("Select the end row number:", min_value=1, max_value=len(df), value=len(df))
     elif formula_type == "SUMIF":
         range_columns = st.multiselect("Select the range of columns for SUMIF:", df.columns,
                                        default=df.columns.tolist())
@@ -319,9 +329,9 @@ def run_excel_formula_app(df, session_key):
                 formula = f"=HLOOKUP({lookup_value}, {start_col}2:{end_col}{len(df) + 1}, {col_index_num}, {range_lookup_val})"
             else:
                 st.warning("Please provide the necessary inputs for HLOOKUP.")
-        elif formula_type =="COUNT-IF":
+        elif formula_type == "COUNT-IF":
             if range_column and criteria:
-                range_ref = f"{chr(ord('A') + df.columns.get_loc(range_column))}2:{chr(ord('A') + df.columns.get_loc(range_column))}{len(df) + 1}"
+                range_ref = f"{chr(ord('A') + df.columns.get_loc(range_column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(range_column))}{end_row_num}"
                 formula = f'=COUNTIF({range_ref}, "{criteria}")'
                 st.code(formula)
             else:
