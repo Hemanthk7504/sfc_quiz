@@ -37,7 +37,7 @@ def run_excel_formula_app(df, session_key):
         st.session_state['formula_type'] = None
 
     formula_type = st.selectbox("Select a formula type:",
-                                ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVG",
+                                ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVERAGE",
                                  "INDEX-MATCH","IF","PIVOT_TABLE","COMPLEX_IF"], key=f"formula_type_{session_key}")
     column = None
     lookup_value = None
