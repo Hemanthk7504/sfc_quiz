@@ -38,7 +38,7 @@ def run_excel_formula_app(df, session_key):
 
     formula_type = st.selectbox("Select a formula type:",
                                 ["SUM", "HLOOKUP", "FILTER", "SUMIF", "VLOOKUP", "MATCH", "INDEX", "AVERAGE",
-                                 "INDEX-MATCH", "IF", "PIVOT_TABLE", "COMPLEX_IF"], key=f"formula_type_{session_key}")
+                                 "INDEX-MATCH", "IF", "PIVOT_TABLE", "COMPLEX_IF","COUNT-IF"], key=f"formula_type_{session_key}")
     column = None
     lookup_value = None
     lookup_column = None
@@ -57,7 +57,8 @@ def run_excel_formula_app(df, session_key):
     start_row_num = None
     end_row_num = None
     if formula_type == "SUM":
-        range_type = st.radio("Select range type:", ["Row", "Column", "Horizontal"],key=f"sum_range_type_{session_key}")
+        range_type = st.radio("Select range type:", ["Row", "Column", "Horizontal"],
+                              key=f"sum_range_type_{session_key}")
         if range_type == "Row":
             row = st.number_input("Select the row number:", min_value=1, max_value=len(df), value=1)
             start_col, end_col = st.columns(2)
@@ -113,6 +114,9 @@ def run_excel_formula_app(df, session_key):
                 end_column = st.selectbox("Select the end column:", df.columns)
                 end_row_num = st.number_input("Select the end row number:", min_value=1, max_value=len(df), value=1)
             formula = f"=AVG({chr(ord('A') + df.columns.get_loc(start_column))}{start_row_num}:{chr(ord('A') + df.columns.get_loc(end_column))}{end_row_num})"
+    elif formula_type == "COUNT-IF":
+        range_column = st.selectbox("Select the column for COUNTIF:", df.columns)
+        criteria = st.text_input("Enter the criteria for COUNTIF:")
     elif formula_type == "SUMIF":
         range_columns = st.multiselect("Select the range of columns for SUMIF:", df.columns,
                                        default=df.columns.tolist())
@@ -131,6 +135,7 @@ def run_excel_formula_app(df, session_key):
         condition_operator = st.selectbox("Choose the operator:", [">", "<", "=", ">=", "<="])
     elif formula_type == "HLOOKUP":
         lookup_value = st.text_input("Enter the lookup value for HLOOKUP:")
+        lookup_column = st.selectbox("Select the lookup column:", df.columns)
         range_columns = st.multiselect("Select the range of rows to search within:", df.columns,
                                        default=df.columns.tolist())
         col_index_num = st.number_input("Enter the row index for the result (starting from 1):", min_value=1,
@@ -156,6 +161,22 @@ def run_excel_formula_app(df, session_key):
         col_index_num = st.number_input("Enter the column index for the result (starting from 1):", min_value=1,
                                         max_value=len(df.columns), value=1)
         range_lookup = st.radio("Choose the type of match:", ['True', 'False'], index=1)
+
+        if lookup_value:
+            try:
+                lookup_value_numeric = float(lookup_value)
+                row_indices = df.index[df[lookup_column] == lookup_value_numeric].tolist()
+            except ValueError:
+                row_indices = df.index[df[lookup_column].astype(str) == lookup_value].tolist()
+
+            if len(row_indices) > 1:
+                lookup_value = st.selectbox("Select the lookup value:",
+                                            [df.loc[idx, lookup_column] for idx in row_indices])
+            elif len(row_indices) == 1:
+                lookup_value = df.loc[row_indices[0], lookup_column]
+            else:
+                st.warning("No matching lookup value found.")
+                lookup_value = None
     elif formula_type == "MATCH":
         column = st.selectbox("Select the column for MATCH:", df.columns)
         lookup_value = st.text_input("Enter lookup value for MATCH:")
@@ -187,12 +208,19 @@ def run_excel_formula_app(df, session_key):
             else:
                 st.warning("Please enter a condition for SUMIF.")
         elif formula_type == "VLOOKUP":
-            row_index = df[df[lookup_column].astype(str) == lookup_value].index[0] + 2
-            lookup_value_cell = f'{chr(ord("A") + df.columns.get_loc(lookup_column))}{row_index}'
-            start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
-            end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
-            table_range = f"{start_col}2:{end_col}{len(df) + 1}"
-            formula = f"=VLOOKUP({lookup_value_cell}, {table_range}, {col_index_num}, {range_lookup})"
+            if lookup_value and range_columns and col_index_num:
+                try:
+                    lookup_value_cell = f'{chr(ord("A") + df.columns.get_loc(lookup_column))}{df[df[lookup_column] == lookup_value].index[0] + 2}'
+                    start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
+                    end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
+                    table_range = f"{start_col}2:{end_col}{len(df) + 1}"
+                    formula = f"=VLOOKUP({lookup_value_cell}, {table_range}, {col_index_num}, {range_lookup})"
+                    st.code(formula)
+                except IndexError:
+                    st.warning("The selected lookup value does not exist in the lookup column.")
+            else:
+                st.warning("Please provide the necessary inputs for VLOOKUP.")
+
         elif formula_type == "MATCH":
             row_index = df[df[column].astype(str) == lookup_value].index[0] + 2
             lookup_value = f'{chr(ord("A") + df.columns.get_loc(column))}{row_index}'
@@ -231,7 +259,6 @@ def run_excel_formula_app(df, session_key):
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
                     pivot_table.to_excel(writer, sheet_name='Pivot Table')
                     worksheet = writer.sheets['Pivot Table']
-
                     if formatting_options["highlight_max"]:
                         worksheet.conditional_formatting.add('B2:Z1000', rule=writer.book.add_format(
                             {'bg_color': '#FFC7CE', 'font_color': '#9C0006'}), rule_type='max')
@@ -267,13 +294,38 @@ def run_excel_formula_app(df, session_key):
             else:
                 st.warning("No rows match the specified condition.")
 
-            st.session_state['selected_formula'] = formula
 
         elif formula_type == "HLOOKUP":
-            start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
-            end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
-            range_lookup_val = "TRUE" if range_lookup == "True" else "FALSE"
-            formula = f"=HLOOKUP({lookup_value}, {start_col}1:{end_col}{len(df) + 1}, {col_index_num}, {range_lookup_val})"
+            row_indices = []
+            if lookup_value and range_columns and col_index_num:
+                try:
+                    lookup_value_numeric = float(lookup_value.replace(',', ''))
+                    row_indices = df.index[df[lookup_column] == lookup_value_numeric].tolist()
+                except ValueError:
+                    row_indices = df.index[df[lookup_column].astype(str) == lookup_value].tolist()
+
+            if row_indices:
+                selected_row_index = st.selectbox("Select the row index:", row_indices,
+                                                  format_func=lambda x: f"Row {x + 2}: {df.loc[x, lookup_column]}",
+                                                  key=f"hlookup_row_index_{session_key}")
+            else:
+                selected_row_index = None
+
+            if lookup_value and range_columns and col_index_num and selected_row_index is not None:
+                lookup_value = f'{chr(ord("A") + df.columns.get_loc(lookup_column))}{selected_row_index + 2}'
+                start_col = chr(ord('A') + df.columns.get_loc(range_columns[0]))
+                end_col = chr(ord('A') + df.columns.get_loc(range_columns[-1]))
+                range_lookup_val = "TRUE" if range_lookup == "True" else "FALSE"
+                formula = f"=HLOOKUP({lookup_value}, {start_col}2:{end_col}{len(df) + 1}, {col_index_num}, {range_lookup_val})"
+            else:
+                st.warning("Please provide the necessary inputs for HLOOKUP.")
+        elif formula_type =="COUNT-IF":
+            if range_column and criteria:
+                range_ref = f"{chr(ord('A') + df.columns.get_loc(range_column))}2:{chr(ord('A') + df.columns.get_loc(range_column))}{len(df) + 1}"
+                formula = f'=COUNTIF({range_ref}, "{criteria}")'
+                st.code(formula)
+            else:
+                st.warning("Please provide the necessary inputs for COUNTIF.")
         elif formula_type == "INDEX":
             if column in df.columns:
                 row_num = int(row)
@@ -286,8 +338,10 @@ def run_excel_formula_app(df, session_key):
         elif formula_type == "INDEX-MATCH":
 
             if lookup_value and lookup_column and result_column:
+                row_index = df[df[lookup_column].astype(str) == lookup_value].index[0] + 2
                 lookup_col_letter = chr(ord('A') + df.columns.get_loc(lookup_column))
                 result_col_letter = chr(ord('A') + df.columns.get_loc(result_column))
+                lookup_value = f'{chr(ord("A") + df.columns.get_loc(lookup_column))}{row_index}'
                 formula = f'=INDEX({lookup_col_letter}2:{result_col_letter}{len(df) + 1}, MATCH({lookup_value}, {lookup_col_letter}2:{lookup_col_letter}{len(df) + 1}, 0))'
             else:
                 st.warning("Please provide the lookup value, lookup column, and result column.")
